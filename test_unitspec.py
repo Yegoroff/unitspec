@@ -1,39 +1,60 @@
-from scope_tets import module_test
+from scope_tets import scope_test
 from unitspec import SpecTestCase
 
 
-module_var = "module_var"
+module_var = "module_scope"
 
 # noinspection PyUnusedLocal
 class UnitSpecTests(SpecTestCase):
 
-    test_field = "test_field"
+    testcase_var = "testcase_scope"
 
-    def test_sample_spec(self):
+    def test_sample_spec(self, ctx):
 
-        def establish(ctx):
+        ctx.value = "A"
+
+        def given(ctx):
+           ctx.value += "B"
+
+        def when(ctx):
+            ctx.result = ctx.value + "C"
+
+        def it_should_be_ABC(ctx):
+            self.assertEqual(ctx.result, "ABC")
+
+        def it_should_not_be_AB(ctx):
+            self.assertNotEqual(ctx.result, "AB")
+
+
+    def test_partial_speck(self):
+
+        def given(ctx):
             ctx.value = "A"
 
-        def act(ctx):
-            ctx.value += "B"
+        def it_should_run_successful(ctx):
+            self.assertEqual(ctx.value, "A")
 
-        def it_should_be_AB(ctx):
-            self.assertEqual(ctx.value, "AB")
-
-        def it_should_not_be_ABC(ctx):
-            self.assertNotEqual(ctx.value, "ABC")
 
     def test_scope(self):
 
         def it_should_access_global_scope(ctx):
-            self.assertEqual(module_test(), "module_test")
+            self.assertEqual(scope_test(), "import_scope")
 
         def it_should_access_testcase_scope(ctx):
-           self.assertEqual(self.test_field, "test_field")
+           self.assertEqual(self.testcase_var, "testcase_scope")
 
         def it_should_access_module_scope(ctx):
-            self.assertEqual(module_var, "module_var")
+            self.assertEqual(module_var, "module_scope")
+
 
     def test_it_should_pass_regular_unittest(self):
         self.assertEqual("A", "A")
+
+    def test_it_should_ignore_nested_user_defined_functions(self):
+
+        def modify_val(val, modifier):
+            return val + modifier
+
+        value = modify_val("A", "B")
+        self.assertEqual(value, "AB")
 

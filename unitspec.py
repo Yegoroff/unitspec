@@ -4,6 +4,8 @@ import inspect
 class Context(object):
     pass
 
+def _is_spec_name(name):
+    return name in ["given", "when"] or name.startswith("it_should")
 
 def spec(func):
 
@@ -22,31 +24,35 @@ def spec(func):
 
         specs = {}
         for fn_def in func.func_code.co_consts:
-            if inspect.iscode(fn_def):
+            if inspect.iscode(fn_def) and _is_spec_name(fn_def.co_name):
                 specs[fn_def.co_name] = to_action(fn_def.co_name, fn_def)
 
         return specs
 
     def run_specs(self):
 
-        specs = get_specs(self)
-
-        if len(specs) == 0:
-            return func(self)
-
-        print "> SPEC: " + func.func_name.replace("_", " ")
-
         context = Context()
 
-        establish = specs.get("establish", None)
-        if establish: establish(context)
+        if func.func_code.co_argcount == 2:
+            func(self, context)
+        else:
+            func(self)
 
-        act = specs.get("act", None)
-        if act: act(context)
+        specs = get_specs(self)
+        if len(specs) == 0:
+            return
+
+        print "* SPEC: " + func.func_name.replace("_", " ")
+
+        given = specs.get("given", None)
+        if given: given(context)
+
+        when = specs.get("when", None)
+        if when: when(context)
 
         for should in specs:
             if should.startswith("it_should"):
-                print "   >" + should.replace("_", " ")
+                print "    > " + should.replace("_", " ")
                 specs[should](context)
 
     return run_specs

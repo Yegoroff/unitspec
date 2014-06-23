@@ -1,4 +1,4 @@
 
 
-def module_test():
-    return "module_test"
+def scope_test():
+    return "import_scope"
