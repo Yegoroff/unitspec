@@ -1,3 +1,4 @@
+from functools import wraps
 import unittest
 import inspect
 
@@ -29,6 +30,7 @@ def spec(func):
 
         return specs
 
+    @wraps(func)
     def run_specs(self):
 
         context = Context()
@@ -58,6 +60,14 @@ def spec(func):
     return run_specs
 
 
+def get_spaced_test(self, name):
+    if name.startswith("test_"):
+        spaced_name = name.replace("_", " ")
+        return getattr(self, spaced_name)
+
+    raise AttributeError("%r object has no attribute %r" % (self.__class__, name))
+
+
 class MetaSpec(type):
 
     def __new__(cls, clsname, bases, attrs):
@@ -71,7 +81,13 @@ class MetaSpec(type):
 
         return super(MetaSpec, cls).__new__(cls, clsname, bases, decorated_attrs)
 
+    def __getattr__(self, name):
+        return get_spaced_test(self, name)
+
 
 class SpecTestCase(unittest.TestCase):
 
     __metaclass__ = MetaSpec
+
+    def __getattr__(self, name):
+        return get_spaced_test(self, name)

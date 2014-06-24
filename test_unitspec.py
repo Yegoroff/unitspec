@@ -58,3 +58,16 @@ class UnitSpecTests(SpecTestCase):
         value = modify_val("A", "B")
         self.assertEqual(value, "AB")
 
+
+    def test_self_getattr_returns_attributes_by_declared_name(self):
+
+        attr = getattr(self, "test_self_getattr_returns_attributes_by_declared_name")
+
+        assert attr == self.test_self_getattr_returns_attributes_by_declared_name
+
+    def test_cls_getattr_returns_attributes_by_declared_name(self):
+
+        cls = type(self)
+        attr = getattr(cls, "test_cls_getattr_returns_attributes_by_declared_name")
+
+        assert attr == cls.test_cls_getattr_returns_attributes_by_declared_name
