@@ -1,5 +1,6 @@
 from scope_tets import scope_test
 from unitspec import SpecTestCase
+import unitspec
 
 
 module_var = "module_scope"
@@ -13,10 +14,10 @@ class UnitSpecTests(SpecTestCase):
 
         ctx.value = "A"
 
-        def given(ctx):
+        def given_string_AB(ctx):
            ctx.value += "B"
 
-        def when(ctx):
+        def when_adding_C(ctx):
             ctx.result = ctx.value + "C"
 
         def it_should_be_ABC(ctx):
@@ -26,7 +27,7 @@ class UnitSpecTests(SpecTestCase):
             self.assertNotEqual(ctx.result, "AB")
 
 
-    def test_partial_speck(self):
+    def test_incomplete_speck(self):
 
         def given(ctx):
             ctx.value = "A"
@@ -48,7 +49,9 @@ class UnitSpecTests(SpecTestCase):
 
 
     def test_it_should_pass_regular_unittest(self):
+
         self.assertEqual("A", "A")
+
 
     def test_it_should_ignore_nested_user_defined_functions(self):
 
@@ -65,9 +68,22 @@ class UnitSpecTests(SpecTestCase):
 
         assert attr == self.test_self_getattr_returns_attributes_by_declared_name
 
+
     def test_cls_getattr_returns_attributes_by_declared_name(self):
 
         cls = type(self)
         attr = getattr(cls, "test_cls_getattr_returns_attributes_by_declared_name")
 
         assert attr == cls.test_cls_getattr_returns_attributes_by_declared_name
+
+
+    def test_get_by_partial(self):
+        dict = {"given_context": "a"}
+
+        value = unitspec.get_by_partial(dict, "given")
+        self.assertEqual(value, "a")
+
+        value = unitspec.get_by_partial(dict, "notexisting")
+        self.assertIsNone(value)
+
+

@@ -6,7 +6,14 @@ class Context(object):
     pass
 
 def _is_spec_name(name):
-    return name in ["given", "when"] or name.startswith("it_should")
+    return name.startswith("given") or name.startswith("when") or name.startswith("it_should")
+
+def get_all_by_partial(dict, partial_key):
+    return [v for k,v in dict.items() if k.startswith(partial_key)]
+
+def get_by_partial(dict, partial_key):
+    values = get_all_by_partial(dict, partial_key)
+    return values[0] if values else None
 
 def spec(func):
 
@@ -46,16 +53,19 @@ def spec(func):
 
         print "* SPEC: " + func.func_name.replace("_", " ")
 
-        given = specs.get("given", None)
-        if given: given(context)
+        given = get_by_partial(specs, "given")
+        if given:
+            print "  " + given.func_name.replace("_", " ")
+            given(context)
 
-        when = specs.get("when", None)
-        if when: when(context)
+        when = get_by_partial(specs, "when")
+        if when:
+            print "  " + when.func_name.replace("_", " ")
+            when(context)
 
-        for should in specs:
-            if should.startswith("it_should"):
-                print "    > " + should.replace("_", " ")
-                specs[should](context)
+        for should in get_all_by_partial(specs, "it_should"):
+            print "    > " + should.func_name.replace("_", " ")
+            should(context)
 
     return run_specs
 
