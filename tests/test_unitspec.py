@@ -1,6 +1,6 @@
 from tests.scope_tets import scope_test
 from unitspec import unitspec
-from unitspec.unitspec import SpecTestCase
+from unitspec import SpecTestCase
 
 
 module_var = "module_scope"
