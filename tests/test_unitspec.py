@@ -1,6 +1,6 @@
-from scope_tets import scope_test
-from unitspec import SpecTestCase
-import unitspec
+from tests.scope_tets import scope_test
+from unitspec import unitspec
+from unitspec.unitspec import SpecTestCase
 
 
 module_var = "module_scope"
@@ -85,5 +85,3 @@ class UnitSpecTests(SpecTestCase):
 
         value = unitspec.get_by_partial(dict, "notexisting")
         self.assertIsNone(value)
-
-
