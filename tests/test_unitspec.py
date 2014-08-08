@@ -1,5 +1,5 @@
 from tests.scope_tets import scope_test
-from unitspec import unitspec
+from unitspec import unitspec, spec
 from unitspec import SpecTestCase
 
 
@@ -34,6 +34,62 @@ class UnitSpecTests(SpecTestCase):
 
         def it_should_run_successful(ctx):
             self.assertEqual(ctx.value, "A")
+
+
+    def test_cleanup(self):
+
+        @spec
+        def the_test_itself(self):
+
+            def given(ctx):
+                ctx.value = "1"
+
+            def when(ctx):
+                ctx.value += "2"
+
+            def it_should_pass(ctx):
+                self.assertEqual(ctx.value, "12")
+
+            def cleanup_everything(ctx):
+                self.cleaned_up = True
+
+        self.cleaned_up = False
+        the_test_itself(self)
+        self.assertEqual(self.cleaned_up, True)
+
+
+    def test_cleanup_after_failure(self):
+
+        @spec
+        def the_test_itself(self):
+
+            def when_raising_exceptions(ctx):
+                raise Exception("Should run cleanup")
+
+            def cleanup_anyway(ctx):
+                self.cleaned_up = True
+
+        self.cleaned_up = False
+        with self.assertRaises(Exception):
+            the_test_itself(self)
+        self.assertEqual(self.cleaned_up, True)
+
+
+    def test_cleanup_after_assertions(self):
+
+        @spec
+        def the_test_itself(self):
+
+            def it_should_fail(ctx):
+                self.assertEqual(True, False)
+
+            def cleanup_anyway(ctx):
+                self.cleaned_up = True
+
+        self.cleaned_up = False
+        with self.assertRaises(AssertionError):
+            the_test_itself(self)
+        self.assertEqual(self.cleaned_up, True)
 
 
     def test_scope(self):

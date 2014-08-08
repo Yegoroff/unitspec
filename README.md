@@ -26,6 +26,9 @@ class UnitSpecTests(SpecTestCase):
         def it_should_not_be_AB(ctx):
             self.assertNotEqual(ctx.result, "AB")
 
+        def cleanup_after(ctx):
+            ctx.value = None
+
 ```
 
 the output will be:
