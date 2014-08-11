@@ -54,7 +54,9 @@ class UnitSpecTests(SpecTestCase):
                 self.cleaned_up = True
 
         self.cleaned_up = False
+
         the_test_itself(self)
+
         self.assertEqual(self.cleaned_up, True)
 
 
@@ -87,8 +89,10 @@ class UnitSpecTests(SpecTestCase):
                 self.cleaned_up = True
 
         self.cleaned_up = False
+
         with self.assertRaises(AssertionError):
             the_test_itself(self)
+
         self.assertEqual(self.cleaned_up, True)
 
 
