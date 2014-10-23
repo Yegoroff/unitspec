@@ -14,6 +14,8 @@ class UnitSpecTests(SpecTestCase):
 
     def test_string_addition(self, ctx):
 
+        ctx.value = "A"
+
         def given_string_AB(ctx):
            ctx.value += "B"
 
