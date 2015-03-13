@@ -54,27 +54,27 @@ def spec(func):
         if len(specs) == 0:
             return
 
-        print "* SPEC: " + func.func_name.replace("_", " ")
+        print("* SPEC: " + func.func_name.replace("_", " ") )
 
         try:
             given = get_by_partial(specs, "given")
             if given:
-                print "  " + given.func_name.replace("_", " ")
+                print( "  " + given.func_name.replace("_", " ") )
                 given(context)
 
             when = get_by_partial(specs, "when")
             if when:
-                print "  " + when.func_name.replace("_", " ")
+                print ("  " + when.func_name.replace("_", " "))
                 when(context)
 
             for should in get_all_by_partial(specs, "it_should"):
-                print "    > " + should.func_name.replace("_", " ")
+                print ("    > " + should.func_name.replace("_", " "))
                 should(context)
 
         finally:
             cleanup = get_by_partial(specs, "cleanup")
             if cleanup:
-                print "  " + cleanup.func_name.replace("_", " ")
+                print ("  " + cleanup.func_name.replace("_", " "))
                 cleanup(context)
 
     return run_specs

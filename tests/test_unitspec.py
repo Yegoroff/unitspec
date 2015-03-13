@@ -39,7 +39,7 @@ class UnitSpecTests(SpecTestCase):
     def test_cleanup(self):
 
         @spec
-        def the_test_itself(self):
+        def the_cleanup_test_body(self):
 
             def given(ctx):
                 ctx.value = "1"
@@ -55,7 +55,7 @@ class UnitSpecTests(SpecTestCase):
 
         self.cleaned_up = False
 
-        the_test_itself(self)
+        the_cleanup_test_body(self)
 
         self.assertEqual(self.cleaned_up, True)
 
@@ -63,7 +63,7 @@ class UnitSpecTests(SpecTestCase):
     def test_cleanup_after_failure(self):
 
         @spec
-        def the_test_itself(self):
+        def the_cleanup_test_body(self):
 
             def when_raising_exceptions(ctx):
                 raise Exception("Should run cleanup")
@@ -73,14 +73,14 @@ class UnitSpecTests(SpecTestCase):
 
         self.cleaned_up = False
         with self.assertRaises(Exception):
-            the_test_itself(self)
+            the_cleanup_test_body(self)
         self.assertEqual(self.cleaned_up, True)
 
 
     def test_cleanup_after_assertions(self):
 
         @spec
-        def the_test_itself(self):
+        def the_cleanup_test_body(self):
 
             def it_should_fail(ctx):
                 self.assertEqual(True, False)
@@ -91,7 +91,7 @@ class UnitSpecTests(SpecTestCase):
         self.cleaned_up = False
 
         with self.assertRaises(AssertionError):
-            the_test_itself(self)
+            the_cleanup_test_body(self)
 
         self.assertEqual(self.cleaned_up, True)
 
