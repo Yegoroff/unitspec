@@ -2,6 +2,7 @@ from functools import wraps
 import unittest
 import inspect
 
+
 class Context(object):
     pass
 
@@ -28,13 +29,13 @@ def spec(func):
             def runner_with_self(context):self
 
             runner = runner_empty if len(code.co_freevars) == 0 else runner_with_self
-            runner.func_name = name
-            runner.func_code = code
-            runner.func_globals.update(func.func_globals)
+            runner.__name__ = name
+            runner.__code__ = code
+            runner.__globals__.update(func.__globals__)
             return runner
 
         specs = {}
-        for fn_def in func.func_code.co_consts:
+        for fn_def in func.__code__.co_consts:
             if inspect.iscode(fn_def) and _is_spec_name(fn_def.co_name):
                 specs[fn_def.co_name] = to_action(fn_def.co_name, fn_def)
 
@@ -45,7 +46,7 @@ def spec(func):
 
         context = Context()
 
-        if func.func_code.co_argcount == 2:
+        if func.__code__.co_argcount == 2:
             func(self, context)
         else:
             func(self)
@@ -54,31 +55,35 @@ def spec(func):
         if len(specs) == 0:
             return
 
-        print("* SPEC: " + func.func_name.replace("_", " ") )
+        output_stage("* SPEC: ", func)
 
         try:
             given = get_by_partial(specs, "given")
             if given:
-                print( "  " + given.func_name.replace("_", " ") )
+                output_stage("  ", given)
                 given(context)
 
             when = get_by_partial(specs, "when")
             if when:
-                print ("  " + when.func_name.replace("_", " "))
+                output_stage ("  ", when)
                 when(context)
 
             for should in get_all_by_partial(specs, "it_should"):
-                print ("    > " + should.func_name.replace("_", " "))
+                output_stage ("    > ", should)
                 should(context)
 
         finally:
             cleanup = get_by_partial(specs, "cleanup")
             if cleanup:
-                print ("  " + cleanup.func_name.replace("_", " "))
+                output_stage ("  ", cleanup)
                 cleanup(context)
 
     return run_specs
 
+
+def output_stage(message, func):
+    func_name = func.__name__.replace("_", " ")
+    print(message + func_name)
 
 def get_spaced_test(self, name):
     if name.startswith("test_"):
@@ -93,7 +98,7 @@ class MetaSpec(type):
     def __new__(cls, clsname, bases, attrs):
 
         decorated_attrs = {}
-        for name, val in attrs.iteritems():
+        for name, val in attrs.items():
             if name.startswith("test_") and inspect.isfunction(val):
                 decorated_attrs[name.replace("_", " ") ] = spec(val)
             else:
@@ -105,9 +110,17 @@ class MetaSpec(type):
         return get_spaced_test(self, name)
 
 
-class SpecTestCase(unittest.TestCase):
+def with_metaclass(meta, *bases):
+    """Create a base class with a metaclass."""
+    class metaclass(meta):
 
-    __metaclass__ = MetaSpec
+        def __new__(cls, name, this_bases, d):
+            return meta(name, bases, d)
+    return type.__new__(metaclass, 'temporary_class', (), {})
+
+
+class SpecTestCase(with_metaclass(MetaSpec,unittest.TestCase)):
 
     def __getattr__(self, name):
         return get_spaced_test(self, name)
+
