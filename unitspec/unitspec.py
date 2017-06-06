@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from functools import wraps
 import unittest
 import inspect
@@ -12,12 +13,8 @@ def _is_spec_name(name):
         or name.startswith("it_should")\
         or name.startswith("cleanup")
 
-def get_all_by_partial(dict, partial_key):
-    return [v for k,v in dict.items() if k.startswith(partial_key)]
-
-def get_by_partial(dict, partial_key):
-    values = get_all_by_partial(dict, partial_key)
-    return values[0] if values else None
+def get_all_named_like(dict, name):
+    return [v for k,v in dict.items() if k.startswith(name)]
 
 def spec(func):
 
@@ -34,7 +31,7 @@ def spec(func):
             runner.__globals__.update(func.__globals__)
             return runner
 
-        specs = {}
+        specs = OrderedDict()
         for fn_def in func.__code__.co_consts:
             if inspect.iscode(fn_def) and _is_spec_name(fn_def.co_name):
                 specs[fn_def.co_name] = to_action(fn_def.co_name, fn_def)
@@ -58,28 +55,26 @@ def spec(func):
         output_stage("* SPEC: ", func)
 
         try:
-            given = get_by_partial(specs, "given")
-            if given:
-                output_stage("  ", given)
-                given(context)
+            for name, spec in specs.items():
 
-            when = get_by_partial(specs, "when")
-            if when:
-                output_stage ("  ", when)
-                when(context)
+                if name.startswith("given"):
+                    output_stage("  ", spec)
+                    spec(context)
 
-            for should in get_all_by_partial(specs, "it_should"):
-                output_stage ("    > ", should)
-                should(context)
+                if name.startswith("when"):
+                    output_stage ("  ", spec)
+                    spec(context)
 
+                if name.startswith("it_should"):
+                    output_stage ("    > ", spec)
+                    spec(context)
         finally:
-            cleanup = get_by_partial(specs, "cleanup")
-            if cleanup:
+            cleanups = get_all_named_like(specs, "cleanup")
+            for cleanup in cleanups:
                 output_stage ("  ", cleanup)
                 cleanup(context)
 
     return run_specs
-
 
 def output_stage(message, func):
     func_name = func.__name__.replace("_", " ")

@@ -5,6 +5,7 @@ from unitspec import SpecTestCase
 
 module_var = "module_scope"
 
+
 # noinspection PyUnusedLocal
 class UnitSpecTests(SpecTestCase):
 
@@ -15,7 +16,7 @@ class UnitSpecTests(SpecTestCase):
         ctx.value = "A"
 
         def given_string_AB(ctx):
-           ctx.value += "B"
+            ctx.value += "B"
 
         def when_adding_C(ctx):
             ctx.result = ctx.value + "C"
@@ -102,7 +103,7 @@ class UnitSpecTests(SpecTestCase):
             self.assertEqual(scope_test(), "import_scope")
 
         def it_should_access_testcase_scope(ctx):
-           self.assertEqual(self.testcase_var, "testcase_scope")
+            self.assertEqual(self.testcase_var, "testcase_scope")
 
         def it_should_access_module_scope(ctx):
             self.assertEqual(module_var, "module_scope")
@@ -137,11 +138,47 @@ class UnitSpecTests(SpecTestCase):
         assert attr == cls.test_cls_getattr_returns_attributes_by_declared_name
 
 
-    def test_get_by_partial(self):
-        dict = {"given_context": "a"}
+    def test_get_all_named_like(self):
+        sample_dict = {"given_context": "a"}
 
-        value = unitspec.get_by_partial(dict, "given")
-        self.assertEqual(value, "a")
+        value = unitspec.get_all_named_like(sample_dict, "given")
+        self.assertEqual(["a"], value)
 
-        value = unitspec.get_by_partial(dict, "notexisting")
-        self.assertIsNone(value)
+        value = unitspec.get_all_named_like(sample_dict, "notexisting")
+        self.assertEqual([], value)
+
+
+    def test_ordered_spec_execution(self, ctx):
+
+        ctx.order = 1
+
+        def cleanup_last_8(ctx):
+            self.assertEqual(8, ctx.order)
+
+        def given_1(ctx):
+            self.assertEqual(1, ctx.order)
+            ctx.order += 1
+
+        def given_2(ctx):
+            self.assertEqual(2, ctx.order)
+            ctx.order += 1
+
+        def when_3(ctx):
+            self.assertEqual(3, ctx.order)
+            ctx.order += 1
+
+        def it_should_be_4(ctx):
+            self.assertEqual(4, ctx.order)
+            ctx.order += 1
+
+        def it_should_be_5(ctx):
+            self.assertEqual(5, ctx.order)
+            ctx.order += 1
+
+        def when_6(ctx):
+            self.assertEqual(6, ctx.order)
+            ctx.order += 1
+
+        def it_should_be_7(ctx):
+            self.assertEqual(7, ctx.order)
+            ctx.order += 1

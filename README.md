@@ -28,7 +28,7 @@ class UnitSpecTests(SpecTestCase):
         def it_should_not_be_AB(ctx):
             self.assertNotEqual(ctx.result, "AB")
 
-        def cleanup_after(ctx):
+        def cleanup_after_test(ctx):
             ctx.value = None
 
 ```
@@ -40,6 +40,7 @@ the output will be:
   when adding C
     > it should be ABC
     > it should not be AB
+  cleanup after test
 ```
 
 descendants of the 'SpecTestCase' allowed to combine common unittest methods with the spec-based.
