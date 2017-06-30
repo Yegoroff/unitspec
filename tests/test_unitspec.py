@@ -1,4 +1,4 @@
-from tests.scope_tets import scope_test
+from .scope_tets import scope_test
 from unitspec import unitspec, spec
 from unitspec import SpecTestCase
 
@@ -182,3 +182,29 @@ class UnitSpecTests(SpecTestCase):
         def it_should_be_7(ctx):
             self.assertEqual(7, ctx.order)
             ctx.order += 1
+
+
+    @staticmethod
+    def test_static_method_tests():
+
+        def given_string_AB(ctx):
+            ctx.value = "AB"
+
+        def when_adding_C(ctx):
+            ctx.value += "C"
+
+        def it_should_be_ABC(ctx):
+            assert(ctx.value == "ABC")
+
+
+    @classmethod
+    def test_class_method_tests(cls):
+
+        def given_static_context_string_AB(ctx):
+            ctx.value = "AB"
+
+        def when_adding_C(ctx):
+            ctx.value += "C"
+
+        def it_should_be_ABC(ctx):
+            assert(ctx.value == "ABC")

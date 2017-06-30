@@ -13,12 +13,15 @@ def _is_spec_name(name):
         or name.startswith("it_should")\
         or name.startswith("cleanup")
 
+def _is_class_or_static_method(func):
+    return isinstance(func, (classmethod, staticmethod))
+
 def get_all_named_like(dict, name):
     return [v for k,v in dict.items() if k.startswith(name)]
 
 def spec(func):
 
-    def get_specs(self):
+    def get_specs(func, self):
 
         def to_action(name, code):
 
@@ -43,16 +46,21 @@ def spec(func):
 
         context = Context()
 
-        if func.__code__.co_argcount == 2:
-            func(self, context)
-        else:
-            func(self)
+        real_func = func.__func__ if _is_class_or_static_method(func) else func
 
-        specs = get_specs(self)
+        args_count =real_func.__code__.co_argcount
+        if args_count == 2:
+            real_func(self, context)
+        elif args_count == 1:
+            real_func(self)
+        elif args_count == 0:
+            real_func()
+
+        specs = get_specs(real_func, self)
         if len(specs) == 0:
             return
 
-        output_stage("* SPEC: ", func)
+        output_stage("* SPEC: ", real_func)
 
         try:
             for name, spec in specs.items():
@@ -94,7 +102,7 @@ class MetaSpec(type):
 
         decorated_attrs = {}
         for name, val in attrs.items():
-            if name.startswith("test_") and inspect.isfunction(val):
+            if name.startswith("test_") and inspect.isroutine(val):
                 decorated_attrs[name.replace("_", " ") ] = spec(val)
             else:
                 decorated_attrs[name] = val
