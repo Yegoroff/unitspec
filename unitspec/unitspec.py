@@ -35,16 +35,9 @@ def spec(func):
 
         context = Context()
 
+        _call_test_function(func, self, context)
+
         test_func = _get_original_func(func)
-
-        args_count = test_func.__code__.co_argcount
-        if args_count == 2:
-            test_func(self, context)
-        elif args_count == 1:
-            test_func(self)
-        elif args_count == 0:
-            test_func()
-
         steps = get_spec_steps(test_func, self)
         if len(steps) == 0:
             return
@@ -120,8 +113,23 @@ def _get_original_func(func):
     # get original func from decorators (only for those who follow standard update_wrapper/wraps pattern)
     while hasattr(func, "__wrapped__"):
         func = func.__wrapped__
-
     return func
+
+
+def _call_test_function(func, self, context):
+
+    bare_function = _get_original_func(func)
+
+    if isinstance(func, (classmethod, staticmethod)):
+        func = bare_function  # we need to call underlying static or class function
+
+    args_count = bare_function.__code__.co_argcount
+    if args_count == 2:
+        func(self, context)
+    elif args_count == 1:
+        func(self)
+    elif args_count == 0:
+        func()
 
 
 def _get_all_named_like(dict_, name):
@@ -139,6 +147,3 @@ def _get_spaced_test(self, name):
         return getattr(self, spaced_name)
 
     raise AttributeError("%r object has no attribute %r" % (self.__class__, name))
-
-
-

@@ -6,13 +6,17 @@ from .scope_tets import scope_test
 module_var = "module_scope"
 
 
-def decorator_for_test(func):
-
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
-
-    return wrapper
+def set_self_test_value(test_value=None):
+    def func_wrapper(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if hasattr(self, "test_value"):
+                self.test_value = self.test_value + test_value
+            else:
+                self.test_value = test_value
+            return func(self, *args, **kwargs)
+        return wrapper
+    return func_wrapper
 
 
 # noinspection PyUnusedLocal
@@ -194,7 +198,7 @@ class UnitSpecTests(SpecTestCase):
 
 
     @staticmethod
-    def test_static_method_tests():
+    def test_staticmethod_spec_tests():
 
         def given_string_AB(ctx):
             ctx.value = "AB"
@@ -207,7 +211,7 @@ class UnitSpecTests(SpecTestCase):
 
 
     @classmethod
-    def test_class_method_tests(cls):
+    def test_classmethod_spec_tests(cls):
 
         def given_static_context_string_AB(ctx):
             ctx.value = "AB"
@@ -218,9 +222,20 @@ class UnitSpecTests(SpecTestCase):
         def it_should_be_ABC(ctx):
             assert(ctx.value == "ABC")
 
-    @decorator_for_test
-    @decorator_for_test
-    def test_decorated_method_test(self):
 
-        def it_should_pass(ctx):
-            pass
+    @set_self_test_value(test_value="One ")
+    @set_self_test_value(test_value="Two")
+    def test_it_invokes_decorators(self):
+
+        self.assertEqual(self.test_value, "One Two")
+
+        def it_should_set_expected_test_value(ctx):
+             self.assertEqual(self.test_value, "One Two")
+
+
+    @set_self_test_value(test_value="One ")
+    @set_self_test_value(test_value="Two")
+    def test_it_calls_specs_within_decorated_tests(self):
+
+        def it_should_call_specs_after_decorators(ctx):
+            self.assertEqual(self.test_value, "One Two")
