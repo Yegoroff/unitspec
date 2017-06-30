@@ -1,9 +1,18 @@
+from functools import wraps
+from unitspec import SpecTestCase, spec, unitspec
 from .scope_tets import scope_test
-from unitspec import unitspec, spec
-from unitspec import SpecTestCase
 
 
 module_var = "module_scope"
+
+
+def decorator_for_test(func):
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
 # noinspection PyUnusedLocal
@@ -141,10 +150,10 @@ class UnitSpecTests(SpecTestCase):
     def test_get_all_named_like(self):
         sample_dict = {"given_context": "a"}
 
-        value = unitspec.get_all_named_like(sample_dict, "given")
+        value = unitspec._get_all_named_like(sample_dict, "given")
         self.assertEqual(["a"], value)
 
-        value = unitspec.get_all_named_like(sample_dict, "notexisting")
+        value = unitspec._get_all_named_like(sample_dict, "notexisting")
         self.assertEqual([], value)
 
 
@@ -208,3 +217,10 @@ class UnitSpecTests(SpecTestCase):
 
         def it_should_be_ABC(ctx):
             assert(ctx.value == "ABC")
+
+    @decorator_for_test
+    @decorator_for_test
+    def test_decorated_method_test(self):
+
+        def it_should_pass(ctx):
+            pass

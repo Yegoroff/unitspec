@@ -7,88 +7,133 @@ import inspect
 class Context(object):
     pass
 
-def _is_spec_name(name):
+
+def spec(func):
+
+    def get_spec_steps(test_func, self):
+
+        def to_action(name, code):
+
+            def runner_empty(context): pass
+            def runner_with_self(context): self  # placeholder for a function with self closure
+
+            runner = runner_empty if len(code.co_freevars) == 0 else runner_with_self
+            runner.__name__ = name
+            runner.__code__ = code
+            runner.__globals__.update(test_func.__globals__)
+            return runner
+
+        steps = OrderedDict()
+        for fn_def in test_func.__code__.co_consts:
+            if inspect.iscode(fn_def) and _is_step_name(fn_def.co_name):
+                steps[fn_def.co_name] = to_action(fn_def.co_name, fn_def)
+
+        return steps
+
+    @wraps(func)
+    def run_spec(self):
+
+        context = Context()
+
+        test_func = _get_original_func(func)
+
+        args_count = test_func.__code__.co_argcount
+        if args_count == 2:
+            test_func(self, context)
+        elif args_count == 1:
+            test_func(self)
+        elif args_count == 0:
+            test_func()
+
+        steps = get_spec_steps(test_func, self)
+        if len(steps) == 0:
+            return
+
+        _output_step("* SPEC: ", test_func)
+
+        try:
+            for name, section in steps.items():
+
+                if name.startswith("given"):
+                    _output_step("  ", section)
+                    section(context)
+
+                if name.startswith("when"):
+                    _output_step("  ", section)
+                    section(context)
+
+                if name.startswith("it_should"):
+                    _output_step("    > ", section)
+                    section(context)
+        finally:
+            cleanups = _get_all_named_like(steps, "cleanup")
+            for cleanup in cleanups:
+                _output_step("  ", cleanup)
+                cleanup(context)
+
+    return run_spec
+
+
+class MetaSpec(type):
+
+    def __new__(mcs, clsname, bases, attrs):
+
+        decorated_attrs = {}
+        for name, val in attrs.items():
+            if name.startswith("test_") and inspect.isroutine(val):
+                decorated_attrs[name.replace("_", " ")] = spec(val)
+            else:
+                decorated_attrs[name] = val
+
+        return super(MetaSpec, mcs).__new__(mcs, clsname, bases, decorated_attrs)
+
+    def __getattr__(self, name):
+        return _get_spaced_test(self, name)
+
+
+def with_metaclass(meta, *bases):
+    """Create a base class with a metaclass."""
+    class Metaclass(meta):
+
+        def __new__(cls, name, this_bases, d):
+            return meta(name, bases, d)
+    return type.__new__(Metaclass, 'temporary_class', (), {})
+
+
+class SpecTestCase(with_metaclass(MetaSpec, unittest.TestCase)):
+
+    def __getattr__(self, name):
+        return _get_spaced_test(self, name)
+
+
+def _is_step_name(name):
     return name.startswith("given")\
         or name.startswith("when")\
         or name.startswith("it_should")\
         or name.startswith("cleanup")
 
-def _is_class_or_static_method(func):
-    return isinstance(func, (classmethod, staticmethod))
 
-def get_all_named_like(dict, name):
-    return [v for k,v in dict.items() if k.startswith(name)]
+def _get_original_func(func):
+    if isinstance(func, (classmethod, staticmethod)):
+        return func.__func__
 
-def spec(func):
+    # get original func from decorators (only for those who follow standard update_wrapper/wraps pattern)
+    while hasattr(func, "__wrapped__"):
+        func = func.__wrapped__
 
-    def get_specs(func, self):
+    return func
 
-        def to_action(name, code):
 
-            def runner_empty(context):pass
-            def runner_with_self(context):self
+def _get_all_named_like(dict_, name):
+    return [v for k, v in dict_.items() if k.startswith(name)]
 
-            runner = runner_empty if len(code.co_freevars) == 0 else runner_with_self
-            runner.__name__ = name
-            runner.__code__ = code
-            runner.__globals__.update(func.__globals__)
-            return runner
 
-        specs = OrderedDict()
-        for fn_def in func.__code__.co_consts:
-            if inspect.iscode(fn_def) and _is_spec_name(fn_def.co_name):
-                specs[fn_def.co_name] = to_action(fn_def.co_name, fn_def)
-
-        return specs
-
-    @wraps(func)
-    def run_specs(self):
-
-        context = Context()
-
-        real_func = func.__func__ if _is_class_or_static_method(func) else func
-
-        args_count =real_func.__code__.co_argcount
-        if args_count == 2:
-            real_func(self, context)
-        elif args_count == 1:
-            real_func(self)
-        elif args_count == 0:
-            real_func()
-
-        specs = get_specs(real_func, self)
-        if len(specs) == 0:
-            return
-
-        output_stage("* SPEC: ", real_func)
-
-        try:
-            for name, spec in specs.items():
-
-                if name.startswith("given"):
-                    output_stage("  ", spec)
-                    spec(context)
-
-                if name.startswith("when"):
-                    output_stage ("  ", spec)
-                    spec(context)
-
-                if name.startswith("it_should"):
-                    output_stage ("    > ", spec)
-                    spec(context)
-        finally:
-            cleanups = get_all_named_like(specs, "cleanup")
-            for cleanup in cleanups:
-                output_stage ("  ", cleanup)
-                cleanup(context)
-
-    return run_specs
-
-def output_stage(message, func):
+def _output_step(message, func):
     func_name = func.__name__.replace("_", " ")
     print(message + func_name)
 
-def get_spaced_test(self, name):
+
+def _get_spaced_test(self, name):
     if name.startswith("test_"):
         spaced_name = name.replace("_", " ")
         return getattr(self, spaced_name)
@@ -96,34 +141,4 @@ def get_spaced_test(self, name):
     raise AttributeError("%r object has no attribute %r" % (self.__class__, name))
 
 
-class MetaSpec(type):
-
-    def __new__(cls, clsname, bases, attrs):
-
-        decorated_attrs = {}
-        for name, val in attrs.items():
-            if name.startswith("test_") and inspect.isroutine(val):
-                decorated_attrs[name.replace("_", " ") ] = spec(val)
-            else:
-                decorated_attrs[name] = val
-
-        return super(MetaSpec, cls).__new__(cls, clsname, bases, decorated_attrs)
-
-    def __getattr__(self, name):
-        return get_spaced_test(self, name)
-
-
-def with_metaclass(meta, *bases):
-    """Create a base class with a metaclass."""
-    class metaclass(meta):
-
-        def __new__(cls, name, this_bases, d):
-            return meta(name, bases, d)
-    return type.__new__(metaclass, 'temporary_class', (), {})
-
-
-class SpecTestCase(with_metaclass(MetaSpec,unittest.TestCase)):
-
-    def __getattr__(self, name):
-        return get_spaced_test(self, name)
 
