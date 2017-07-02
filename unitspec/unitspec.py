@@ -31,13 +31,15 @@ def spec(func):
         return steps
 
     @wraps(func)
-    def run_spec(self):
+    def run_spec(*args, **kwargs):
+
+        self = next(iter(args or []), None)
 
         context = Context()
 
-        _call_test_function(func, self, context)
+        _call_test_function(func, context, *args, **kwargs)
 
-        test_func = _get_original_func(func)
+        test_func = _get_original_func(func)  # we need to get to the test function to find spec step methods
         steps = get_spec_steps(test_func, self)
         if len(steps) == 0:
             return
@@ -116,20 +118,17 @@ def _get_original_func(func):
     return func
 
 
-def _call_test_function(func, self, context):
-
-    bare_function = _get_original_func(func)
+def _call_test_function(func, context, *args, **kwargs):
+    args_names = inspect.getargspec(_get_original_func(func))[0]
+    if "ctx" in args_names:
+        kwargs["ctx"] = context
 
     if isinstance(func, (classmethod, staticmethod)):
-        func = bare_function  # we need to call underlying static or class function
+        self = args[0]
+        args = args[1:]
+        func = func.__get__(self, type(self))  # we need to call underlying static or class function
 
-    args_count = bare_function.__code__.co_argcount
-    if args_count == 2:
-        func(self, context)
-    elif args_count == 1:
-        func(self)
-    elif args_count == 0:
-        func()
+    func(*args, **kwargs)
 
 
 def _get_all_named_like(dict_, name):

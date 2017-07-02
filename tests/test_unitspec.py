@@ -1,4 +1,6 @@
 from functools import wraps
+from mock import patch
+
 from unitspec import SpecTestCase, spec, unitspec
 from .scope_tets import scope_test
 
@@ -213,7 +215,9 @@ class UnitSpecTests(SpecTestCase):
     @classmethod
     def test_classmethod_spec_tests(cls):
 
-        def given_static_context_string_AB(ctx):
+        assert(cls == UnitSpecTests)
+
+        def given_string_AB(ctx):
             ctx.value = "AB"
 
         def when_adding_C(ctx):
@@ -229,9 +233,6 @@ class UnitSpecTests(SpecTestCase):
 
         self.assertEqual(self.test_value, "One Two")
 
-        def it_should_set_expected_test_value(ctx):
-             self.assertEqual(self.test_value, "One Two")
-
 
     @set_self_test_value(test_value="One ")
     @set_self_test_value(test_value="Two")
@@ -239,3 +240,29 @@ class UnitSpecTests(SpecTestCase):
 
         def it_should_call_specs_after_decorators(ctx):
             self.assertEqual(self.test_value, "One Two")
+
+
+class MockTest(object):
+
+    @classmethod
+    def get_value(cls):
+        return 1
+
+
+class MockingSpecTests(SpecTestCase):
+
+    @patch.multiple(MockTest, get_value=lambda: 2)
+    def test_mocks_called_before_test_function(self):
+        v = MockTest.get_value()
+        self.assertEqual(v, 2)
+
+
+    @patch.object(MockTest, 'get_value', return_value=5)
+    @patch.object(MockTest, 'get_value', return_value=0)
+    def test_mock_params_handled_correctly(self, mock1, mock2, ctx):
+
+        ctx.v = MockTest.get_value()
+        self.assertEqual(ctx.v, 5)
+
+        def it_should_pass(ctx):
+            self.assertEqual(ctx.v, 5)
